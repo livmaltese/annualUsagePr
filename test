@@ -1,0 +1,41 @@
+for row in df_customer.itertuples(index=True):
+    idx = row.Index
+    acct = row.salesforceaccountid
+    start = pd.to_datetime(row.fw1__Billing_Period_Start__c)
+    end   = pd.to_datetime(row.fw1__Billing_Period_End__c)
+
+    # ---- First month window ----
+    first_month_start = start
+    first_month_end = (start + pd.offsets.MonthEnd(0))
+
+    daily_first = df_daily[
+        (df_daily["salesforceaccountid"] == acct) &
+        (df_daily["report_date"].between(first_month_start, first_month_end))
+    ]["usage"].sum()
+
+    # ---- Mid-month window (monthly table) ----
+    mid_start = (first_month_end + pd.Timedelta(days=1))
+    last_month_start = end.replace(day=1)
+    mid_end = last_month_start - pd.Timedelta(days=1)
+
+    if mid_start <= mid_end:
+        monthly_mid = df_monthly[
+            (df_monthly["salesforceaccountid"] == acct) &
+            (df_monthly["report_month"].between(mid_start, mid_end))
+        ]["usage"].sum()
+    else:
+        monthly_mid = 0
+
+    # ---- Last month window ----
+    last_month_end = end
+
+    daily_last = df_daily[
+        (df_daily["salesforceaccountid"] == acct) &
+        (df_daily["report_date"].between(last_month_start, last_month_end))
+    ]["usage"].sum()
+
+    # ---- Write results ----
+    df_customer.at[idx, "First_Month_Usage"] = daily_first
+    df_customer.at[idx, "Mid_Month_Usage"]   = monthly_mid
+    df_customer.at[idx, "Last_Month_Usage"]  = daily_last
+    df_customer.at[idx, "Total_Usage"]       = daily_first + monthly_mid + daily_last
