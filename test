@@ -1,3 +1,10 @@
+start = pd.to_datetime(start)
+end   = pd.to_datetime(end)
+
+mid_start = (start + pd.offsets.MonthBegin(1))   # first day of next month
+mid_end   = (end   - pd.offsets.MonthBegin(1))   # last day of previous month
+
+
 for row in df_customer.itertuples(index=True):
     idx = row.Index
     acct = row.salesforceaccountid
